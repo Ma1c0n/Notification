@@ -1,32 +1,32 @@
 package com.ma1c0n.notification
 
 import android.Manifest
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.content.Context
+import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.ma1c0n.notification.databinding.ActivityMainBinding
 
-private const val NOTIFICATION_PERMISSION_REQUEST_CODE = 110
-private const val CHANNEL_ID = "my_channel"
-private const val NOTIFICATION_ID = 100
-
 class MainActivity : AppCompatActivity() {
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding!!
+
+    companion object {
+        private const val REQUEST_CODE_PERMISSION = 101
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         _binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        requestNotificationsPermission()
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -34,8 +34,55 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
+        setupListeners()
+
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermission()
+        }
+    }
+
+    private fun setupListeners() {
         binding.sendNotificationButton.setOnClickListener {
-            createAndSendNotification()
+            createNotification()
+        }
+    }
+
+    private fun createNotification() {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermission()
+            return
+        }
+
+        val notification = NotificationUtils.createNotification(this)
+        NotificationUtils.sendNotification(this, notification)
+    }
+
+    private fun requestPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                0
+            )
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == REQUEST_CODE_PERMISSION) {
+            if (resultCode == Activity.RESULT_OK) {
+                createNotification()
+            } else {
+                // Handle permission denied scenario
+            }
         }
     }
 
@@ -43,32 +90,6 @@ class MainActivity : AppCompatActivity() {
         _binding = null
         super.onDestroy()
     }
-
-    private fun createAndSendNotification() {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Channel Name",
-            NotificationManager.IMPORTANCE_DEFAULT
-        )
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.createNotificationChannel(channel)
-        notificationManager.notify(NOTIFICATION_ID, buildNotification())
-    }
-
-    private fun buildNotification() = Notification.Builder(this, CHANNEL_ID)
-        .setContentTitle("Notificaton Example")
-        .setContentText("This is my Notification example")
-        .setSmallIcon(R.drawable.ic_launcher_foreground)
-        .setTicker("Ticker text")
-        .setOngoing(true)
-        .build()
-
-    private fun requestNotificationsPermission() {
-        ActivityCompat.requestPermissions(
-            this,
-            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-            NOTIFICATION_PERMISSION_REQUEST_CODE
-        )
-    }
 }
+
 
