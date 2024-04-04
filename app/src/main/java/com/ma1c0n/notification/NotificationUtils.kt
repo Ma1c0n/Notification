@@ -20,7 +20,7 @@ object NotificationUtils {
         val notificationBuilder = Notification.Builder(context, CHANNEL_ID)
             .setContentTitle("Exemplo de Notificação")
             .setContentText("Esta é uma notificação de exemplo")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.mipmap.ic_launcher_round)
             .setColor(ContextCompat.getColor(context, R.color.white))
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
